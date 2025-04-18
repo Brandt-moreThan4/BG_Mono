@@ -25,7 +25,7 @@ logging.basicConfig(
 
 
 
-def create_fred_snapshot() -> None:
+def create_fred_snapshot() -> pd.DataFrame:
 
     fred_map_df = pd.read_excel(MASTER_FILE, sheet_name='master')
     
@@ -63,9 +63,12 @@ def create_fred_snapshot() -> None:
 
     # Add on the pretty name columns from master file
     results_df.index = results_df.index.map(fred_map_df.set_index('fred_id')['display_name'])  
+    results_df.index.name = 'display_name'
 
     results_df.to_excel(DASHBOARD_1_EXPORT_PATH, sheet_name='dashboard_1', index=True, header=True)
     logging.info(f'Exported data to {DASHBOARD_1_EXPORT_PATH}')
+
+    return results_df
 
 
 if __name__ == "__main__":
