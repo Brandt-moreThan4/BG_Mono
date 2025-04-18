@@ -10,14 +10,15 @@ OUTPUT_HTML = Path("output") / "fred_dashboard_1.html"
 SNAPSHOT_FILE = Path("output") / "fred_dashboard_1.xlsx"
 
 # Load data
-df = ff.create_fred_snapshot().reset_index()
+df = ff.create_fred_snapshot()
 
 
 # Prepare rows for Jinja template
 rows = []
-for _, row in df.iterrows():
+for index, row in df.iterrows():
+    # print(row)
     rows.append({
-        "display_name": row["display_name"].value,
+        "display_name": index,
         "latest_value": row["Value"]["latest"],
         "lag_1_value": row["Value"]["lag_1"],
         "lag_2_value": row["Value"]["lag_2"],
