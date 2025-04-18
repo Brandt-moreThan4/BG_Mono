@@ -17,7 +17,9 @@
     <tbody>
         {% for row in rows %}
         <tr>
-            <td>{{ row.display_name }}</td>
+            <td>
+                <a href="{{ row.url }}" >{{ row.display_name }}</a>
+            </td>
             <td>{{ row.latest_value }}</td>
             <td>{{ row.lag_1_value }}</td>
             <td>{{ row.lag_2_value }}</td>

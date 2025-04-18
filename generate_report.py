@@ -49,7 +49,8 @@ fred_map_df = pd.read_excel(ff.MASTER_FILE, sheet_name='master').set_index('disp
 # Prepare rows for Jinja template
 rows = []
 for index, row in df.iterrows():
-    format_meta = fred_map_df.loc[index, FORMAT_COLS].to_dict()
+    meta_data = fred_map_df.loc[index]
+    format_meta = meta_data[FORMAT_COLS].to_dict()
     rows.append({
         "display_name": index,
         "latest_value": format_value(row["Value"]["latest"], **format_meta),
@@ -58,6 +59,7 @@ for index, row in df.iterrows():
         "latest_date": row["Date"]["latest"],
         "lag_1_date": row["Date"]["lag_1"],
         "lag_2_date": row["Date"]["lag_2"],
+        'url': meta_data['link'],
     })
 
 
