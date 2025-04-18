@@ -3,7 +3,7 @@ import time
 import pandas as pd
 import yfinance as yf
 import datetime as dt
-import constants as C
+import reference.constants as C
 import streamlit as st
 
 # DATA_FOLDER = 'data/'

@@ -3,10 +3,10 @@ import streamlit as st
 import plotly.express as px
 import datetime as dt
 
-import inputs
-import data_engine as dd
+import streamlit_app.inputs as inputs
+import streamlit_app.data_engine as dd
 import backtester as bt
-import results as rs
+import streamlit_app.results as rs
 
 st.title("Portfolio Backtester")
 html_title = """

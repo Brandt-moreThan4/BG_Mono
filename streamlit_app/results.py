@@ -3,9 +3,9 @@ import streamlit as st
 import plotly.express as px
 import datetime as dt
 
-import data_engine as dd
+import streamlit_app.data_engine as dd
 import backtester as bt
-import inputs
+import streamlit_app.inputs as inputs
 import metrics
 import utils
 
