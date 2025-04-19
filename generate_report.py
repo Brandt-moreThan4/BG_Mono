@@ -1,20 +1,25 @@
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 import pandas as pd
-import utils
+import matplotlib.pyplot as plt
 
+import utils
 import fred_fun as ff
 
 # Paths
 TEMPLATE_DIR = Path("templates")
 OUTPUT_HTML = Path("output") / "fred_dashboard_1.html"
 SNAPSHOT_FILE = Path("output") / "fred_dashboard_1.xlsx"
+OUTPUT_FOLDER = Path("output")
+IMAGES_FOLDER = OUTPUT_FOLDER / "images"
 
+# Jinja env
+jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
 
 FORMAT_COLS = ['decimals', 'show_percent', 'use_commas', 'show_dollar']
 
-fred_map_df = pd.read_excel(ff.MASTER_FILE, sheet_name='master').set_index('display_name')
-
+master_fred_map_df = pd.read_excel(ff.MASTER_FILE, sheet_name='master')
+utils.set_mpl_colors()
 
 def get_macro_dashboard_data() -> list[dict]:
 
@@ -24,6 +29,7 @@ def get_macro_dashboard_data() -> list[dict]:
     # Convert the datetime to a date
     df['Date'] = df['Date'].map(lambda x: x.date())
 
+    fred_map_df = master_fred_map_df.set_index('display_name')
     rows = []
     for index, row in df.iterrows():
         meta_data = fred_map_df.loc[index]
@@ -42,36 +48,75 @@ def get_macro_dashboard_data() -> list[dict]:
     return rows
 
 
-def get_inflation_data() -> pd.DataFrame:
 
-    # CPIAUCSL
-    # CPILFESL
-    # PCEPI
-    # PCEPILFES
+def generate_inflation_chart(inflation_df:pd.DataFrame) -> None:
+
+    # Generate the inflation chart
+    fig, ax = plt.subplots()
+    df_12_month_plot = inflation_df.copy()
+    name_mapper = master_fred_map_df.set_index('fred_id')['display_name']
+    df_12_month_plot.columns = df_12_month_plot.columns.map(name_mapper)
+    df_12_month_plot.plot(ax=ax)
+
+    # Se the title and make it big
+    ax.set_title("12-Month Inflation", fontsize=20, fontweight='bold')
+
+    # Add the legend
+    ax.legend(loc='upper left')
+    
+    # Format the y-axis to show percentage
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:.0%}"))
+
+    # Remove the xaxis label
+    ax.set_xlabel("")
+
+
+    # Save the chart
+    chart_path = IMAGES_FOLDER / "inflation_chart.png"
+    fig.savefig(chart_path)
+    # fig.savefig(chart_path)    
+    # plt.close(fig)
+
+
+
+
+def generate_inflation_report() -> str:
+
 
     # Pull the inflation data from FRED
-    inflation_data = ff.get_fred_data(fred_ids=['CPIAUCSL', 'CPILFESL', 'PCEPI', 'PCEPILFES'])
+    inflation_data = ff.get_fred_data(fred_ids=['CPIAUCSL', 'CPILFESL', 'PCEPI', 'PCEPILFE'])
 
     # Convert the dataframe to wide format to make it easier to work with
     df = inflation_data.pivot(index='date', columns='fred_id', values='value')
-    
+
+
+    # Compute % Changes
+    df_12_month = df.pct_change(periods=12)
+    df_1_month = df.pct_change(periods=1)
+
+    generate_inflation_chart(df_12_month)
+
+    # Render the Jinja template with the inflation data
+    inflation_template = jinja_env.get_template("3_inflation.html")
+    html = inflation_template.render()
+
+    return html 
 
 
 
 def generate_report() -> None:
 
-    # Jinja env
-    env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
-    full_report_template = env.get_template("0_full_report.html")
-    dashboard_template = env.get_template("2_macro_dash.html")
-    inflation_template = env.get_template("3_inflation.html")
-    gdp_template = env.get_template("4_gdp.html")
+
+    full_report_template = jinja_env.get_template("0_full_report.html")
+    dashboard_template = jinja_env.get_template("2_macro_dash.html")
+
+    gdp_template = jinja_env.get_template("4_gdp.html")
 
 
     # Render individual sections to HTML snippets
     dashboard_html = dashboard_template.render(rows=get_macro_dashboard_data())
     gdp_html = gdp_template.render()
-    inflation_html = inflation_template.render()
+    inflation_html = generate_inflation_report()
 
     # Render full report with HTML snippets
     full_html = full_report_template.render(
