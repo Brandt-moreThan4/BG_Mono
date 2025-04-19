@@ -7,7 +7,7 @@ import time
 
 fred = Fred(api_key='37eb22bada238c97f282715480e7d897')
 
-
+REFRESH_DATA = False  # Set to True to pull new data from FRED
 MASTER_FILE = Path('reference') / 'fred.xlsx'
 FRED_DATA_DUMP_PATH = Path('output') / 'fred_data_dump.xlsx'
 DASHBOARD_1_EXPORT_PATH = Path('output') / 'fred_dashboard_1.xlsx'
@@ -60,8 +60,28 @@ def download_fred_data(fred_ids: list[str],save_to_output:bool=True) -> pd.DataF
     
     return combo_data_df
 
+def get_fred_data(fred_ids: list[str]=None, pull_new_data:bool=REFRESH_DATA) -> pd.DataFrame:
+    """
+    Get the FRED data for the given list of FRED IDs. If pull_new_data is True, it will pull new data from FRED.
+    Otherwise, it will load the data from the Excel file. If no fred_ids, are provided, it will provide all data
+    in the Excel file.
+    """
 
-def create_fred_snapshot(pull_new_data=True) -> pd.DataFrame:
+    if pull_new_data:
+        # Download the data from FRED
+        combined_data_df = download_fred_data(fred_ids, save_to_output=True)
+    else:
+        # Load the data from the Excel file (Hopefully there is something there...)
+        combined_data_df = pd.read_excel(FRED_DATA_DUMP_PATH)
+
+    if fred_ids is not None:
+        # Filter the data to only include the requested FRED IDs
+        combined_data_df = combined_data_df[combined_data_df['fred_id'].isin(fred_ids)].copy()
+    
+    return combined_data_df
+
+
+def create_fred_snapshot(pull_new_data=REFRESH_DATA) -> pd.DataFrame:
 
     fred_map_df = pd.read_excel(MASTER_FILE, sheet_name='master')
     
