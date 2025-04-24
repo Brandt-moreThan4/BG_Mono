@@ -7,27 +7,43 @@
         <thead>
             <tr>
                 <th>Data</th>
-                <th>12-Month</th>
+                <th>Latest Date</th>
                 <th>1-Month</th>
                 <th>3-Month</th>
-                <th>Latest Date</th>
+                <th>6-Month</th>
+                <th>12-Month</th>
+                <th>Annualized 1-Month</th>
+                <th>Annualized 3-Month</th>
+                <th>Annualized 6-Month</th>
             </tr>
         </thead>
-        <tbody>
+            <tbody>
+            {% for row in rows %}
             <tr>
-                <td><a href=" {{ cpi_url }} ">CPI</a></td>
-                <td>{{ cpi_12_month }}</td>
-                <td>{{ cpi_1_month }}</td>
-                <td>{{ cpi_3_month }}</td>
-                <td>{{ cpi_date }}</td>
+                <td>
+                    <a href="{{ row.url }}" >{{ row.display_name }}</a>
+                </td>
+                <td>{{ row.latest_date }}</td>
+                <td>{{ row.one_month }}</td>
+                <td>{{ row.three_month }}</td>
+                <td>{{ row.six_month }}</td>
+                <td>{{ row.twelve_month }}</td>
+                <td>{{ row.annualized_one_month }}</td>
+                <td>{{ row.annualized_three_month }}</td>
+                <td>{{ row.annualized_six_month }}</td>
             </tr>
+            {% endfor %}     
 
         </tbody>
+
     </table>
 
     <br>
     <!-- Add an image -->
-    <!-- <img src="images/inflation_chart.png" alt="Inflation" style="width: 100%; height: auto;"> -->
-    <img src="images/inflation_chart.png" alt="Inflation" >
+    <img src="images/inflation_chart.png" alt="Inflation Chart" style="width: 100%; max-width: 1000px; height: auto; display: block; margin: 20px auto;">
+    
+    <div>
+        {{ chart_html | safe }}
+    </div>
 
 </div>

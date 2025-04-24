@@ -2,15 +2,18 @@ from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+import plotly.io as pio
+
 
 import utils
 import fred_fun as ff
 
 # Paths
 TEMPLATE_DIR = Path("templates")
-OUTPUT_HTML = Path("output") / "fred_dashboard_1.html"
-SNAPSHOT_FILE = Path("output") / "fred_dashboard_1.xlsx"
 OUTPUT_FOLDER = Path("output")
+OUTPUT_HTML = Path("output") / "fred_dashboard_1.html"
+# SNAPSHOT_FILE = Path("output") / "fred_dashboard_1.xlsx"
 IMAGES_FOLDER = OUTPUT_FOLDER / "images"
 
 # Jinja env
@@ -49,56 +52,157 @@ def get_macro_dashboard_data() -> list[dict]:
 
 
 
-def generate_inflation_chart(inflation_df:pd.DataFrame) -> None:
 
-    # Generate the inflation chart
-    fig, ax = plt.subplots()
-    df_12_month_plot = inflation_df.copy()
+def generate_inflation_chart(inflation_df: pd.DataFrame) -> None:
+    LOOKBACK_YEARS = 7
+    df = inflation_df.iloc[-LOOKBACK_YEARS * 12:]
+
+    # Map column names to display names
     name_mapper = master_fred_map_df.set_index('fred_id')['display_name']
-    df_12_month_plot.columns = df_12_month_plot.columns.map(name_mapper)
-    df_12_month_plot.plot(ax=ax)
+    df.columns = df.columns.map(name_mapper)
 
-    # Se the title and make it big
-    ax.set_title("12-Month Inflation", fontsize=20, fontweight='bold')
+    # Plotting
+    fig, ax = plt.subplots(figsize=(12, 6), dpi=150)  # Larger size & higher resolution
 
-    # Add the legend
-    ax.legend(loc='upper left')
-    
-    # Format the y-axis to show percentage
+    df.plot(ax=ax, linewidth=2)
+
+    ax.set_title("12-Month Inflation", fontsize=16, fontweight='bold')
+    ax.legend(loc='upper left', fontsize=10)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:.0%}"))
-
-    # Remove the xaxis label
     ax.set_xlabel("")
+    ax.set_ylabel("YoY % Change", fontsize=12)
+    ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.7)
 
-
-    # Save the chart
+    fig.tight_layout()  # Removes extra whitespace
     chart_path = IMAGES_FOLDER / "inflation_chart.png"
-    fig.savefig(chart_path)
-    # fig.savefig(chart_path)    
-    # plt.close(fig)
+    # fig.savefig(chart_path, bbox_inches="tight")
+    fig.savefig(chart_path, bbox_inches="tight", transparent=True)
+
+    plt.close(fig)
 
 
+
+def generate_inflation_chart_plotly(inflation_df: pd.DataFrame) -> str:
+    LOOKBACK_YEARS = 7
+    df = inflation_df.iloc[-LOOKBACK_YEARS * 12:].copy()
+
+    name_mapper = master_fred_map_df.set_index('fred_id')['display_name']
+    df.columns = df.columns.map(name_mapper)
+    df.index = pd.to_datetime(df.index)
+
+    fig = go.Figure()
+
+    for col in df.columns:
+        fig.add_trace(go.Scatter(
+            x=df.index,
+            y=df[col],
+            mode='lines',
+            name=col,
+            hovertemplate='%{y:.2%}<extra>' + col + '</extra>',
+        ))
+
+    fig.update_layout(
+        title="12-Month Inflation (YoY % Change)",
+        title_font_size=20,
+        height=500,
+        width=900,
+        xaxis_title="Date",
+        yaxis_title="Year-over-Year Change",
+        yaxis_tickformat=".0%",
+        template="plotly_white",
+        margin=dict(t=60, b=40, l=50, r=50),
+        legend=dict(x=0, y=1, bgcolor="rgba(0,0,0,0)"),
+    )
+
+    # Generate HTML div string
+    chart_html = pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
+    return chart_html
+
+
+def generate_inflation_report() -> str:
+    FRED_IDS = ['CPIAUCSL', 'CPILFESL', 'PCEPI', 'PCEPILFE']
+    inflation_data = ff.get_fred_data(fred_ids=FRED_IDS)
+    df = inflation_data.pivot(index='date', columns='fred_id', values='value')
+
+    # % Changes
+    df_1m = df.pct_change(1)
+    df_3m = df.pct_change(3)
+    df_6m = df.pct_change(6)
+    df_12m = df.pct_change(12)
+
+    fred_map = master_fred_map_df.set_index('fred_id')
+    format_meta = {'show_percent': True, 'percent_convert': True}
+    rows = []
+
+    for fid in FRED_IDS:
+        rows.append({
+            'display_name': fred_map.loc[fid]['display_name'],
+            'url': fred_map.loc[fid]['link'],
+            'latest_date': df_12m[fid].last_valid_index().date(),
+            'one_month': utils.format_value(df_1m[fid].dropna().iloc[-1], **format_meta),
+            'three_month': utils.format_value(df_3m[fid].dropna().iloc[-1], **format_meta),
+            'six_month': utils.format_value(df_6m[fid].dropna().iloc[-1], **format_meta),
+            'twelve_month': utils.format_value(df_12m[fid].dropna().iloc[-1], **format_meta),
+            'annualized_one_month': utils.format_value(df_1m[fid].dropna().iloc[-1] * 12, **format_meta),
+            'annualized_three_month': utils.format_value(df_3m[fid].dropna().iloc[-1] * 4, **format_meta),
+            'annualized_six_month': utils.format_value(df_6m[fid].dropna().iloc[-1] * 2, **format_meta),
+        })
+
+    # NEW: Generate interactive chart
+    inflation_chart_html = generate_inflation_chart_plotly(df_12m)
+
+    # Render HTML
+    inflation_template = jinja_env.get_template("3_inflation.html")
+    html = inflation_template.render(rows=rows, chart_html=inflation_chart_html)
+    return html
 
 
 def generate_inflation_report() -> str:
 
 
+    FRED_IDS = ['CPIAUCSL', 'CPILFESL', 'PCEPI', 'PCEPILFE']
     # Pull the inflation data from FRED
-    inflation_data = ff.get_fred_data(fred_ids=['CPIAUCSL', 'CPILFESL', 'PCEPI', 'PCEPILFE'])
+    inflation_data = ff.get_fred_data(fred_ids=FRED_IDS)
 
     # Convert the dataframe to wide format to make it easier to work with
     df = inflation_data.pivot(index='date', columns='fred_id', values='value')
 
 
     # Compute % Changes
-    df_12_month = df.pct_change(periods=12)
-    df_1_month = df.pct_change(periods=1)
+    df_1_month = df.pct_change(periods=1, fill_method=None)
+    df_3_month = df.pct_change(periods=3, fill_method=None)
+    df_6_month = df.pct_change(periods=6, fill_method=None)
+    df_12_month = df.pct_change(periods=12, fill_method=None)
 
-    generate_inflation_chart(df_12_month)
+    # Generate the list of dictionarys for the data table
+    fred_map = master_fred_map_df.set_index('fred_id')
+    format_meta = {'show_percent': True, 'percent_convert': True}
+    rows = []
+    for data_id in FRED_IDS:
+        # Get the date for the latest, non-null value
+        row_dict = {}
+        row_dict['display_name'] = fred_map.loc[data_id]['display_name']
+        row_dict['url'] = fred_map.loc[data_id]['link']
+        row_dict['latest_date'] = df_12_month[data_id].last_valid_index().date()
+        row_dict['one_month'] = utils.format_value(df_1_month[data_id].dropna().iloc[-1], **format_meta)
+        row_dict['three_month'] = utils.format_value(df_3_month[data_id].dropna().iloc[-1], **format_meta)
+        row_dict['six_month'] = utils.format_value(df_6_month[data_id].dropna().iloc[-1], **format_meta)
+        row_dict['twelve_month'] = utils.format_value(df_12_month[data_id].dropna().iloc[-1], **format_meta)
+        row_dict['annualized_one_month'] = utils.format_value(df_1_month[data_id].dropna().iloc[-1] * 12, **format_meta)
+        row_dict['annualized_three_month'] = utils.format_value(df_3_month[data_id].dropna().iloc[-1] * 4, **format_meta)
+        row_dict['annualized_six_month'] = utils.format_value(df_6_month[data_id].dropna().iloc[-1] * 2, **format_meta)
+
+        rows.append(row_dict)
+
+
+    # generate_inflation_chart(df_12_month)
+    chart_html = generate_inflation_chart_plotly(df_12_month)
+
 
     # Render the Jinja template with the inflation data
     inflation_template = jinja_env.get_template("3_inflation.html")
-    html = inflation_template.render()
+    # html = inflation_template.render(rows=rows)
+    html = inflation_template.render(rows=rows, chart_html=chart_html)    
 
     return html 
 

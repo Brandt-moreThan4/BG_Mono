@@ -4,11 +4,14 @@ from matplotlib import cycler
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 
-def format_value(val, decimals=1, show_percent=False, use_commas=True, show_dollar=False):
+def format_value(val, decimals=2, show_percent=False, use_commas=True, show_dollar=False,percent_convert=False) -> str:
+    
     if pd.isnull(val):
         return "-"
 
     try:
+        if percent_convert:
+            val = val * 100
 
         # Build numeric format
         comma_flag = "," if use_commas else ""
