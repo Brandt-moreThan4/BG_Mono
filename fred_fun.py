@@ -8,6 +8,7 @@ import time
 fred = Fred(api_key='37eb22bada238c97f282715480e7d897')
 
 REFRESH_DATA = False  # Set to True to pull new data from FRED
+REFRESH_DATA = True  # Set to True to pull new data from FRED
 MASTER_FILE = Path('reference') / 'fred.xlsx'
 FRED_DATA_DUMP_PATH = Path('output') / 'fred_data_dump.xlsx'
 DASHBOARD_1_EXPORT_PATH = Path('output') / 'fred_dashboard_1.xlsx'

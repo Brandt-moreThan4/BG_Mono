@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import plotly.io as pio
 import logging
+import datetime
 
 
 import utils
@@ -38,10 +39,9 @@ utils.set_mpl_colors()
 def get_macro_dashboard_data() -> list[dict]:
 
     # Grab the cleaned snapshot data    
-    df = ff.create_fred_snapshot(pull_new_data=False)
-
-    # Convert the datetime to a date
-    df['Date'] = df['Date'].map(lambda x: x.date())
+    df = ff.create_fred_snapshot(pull_new_data=ff.REFRESH_DATA)
+    
+    df['Date'] = df['Date'].map(lambda x: x if isinstance(x,datetime.date) else x.date())
 
     fred_map_df = master_fred_map_df.set_index('display_name')
     rows = []
@@ -166,7 +166,7 @@ def generate_inflation_report() -> str:
         row_dict = {}
         row_dict['display_name'] = fred_map.loc[data_id]['display_name']
         row_dict['url'] = fred_map.loc[data_id]['link']
-        row_dict['latest_date'] = df_12_month[data_id].last_valid_index().date()
+        row_dict['latest_date'] = utils.make_date(df_12_month[data_id].last_valid_index())
         row_dict['one_month'] = utils.format_value(df_1_month[data_id].dropna().iloc[-1], **format_meta)
         row_dict['three_month'] = utils.format_value(df_3_month[data_id].dropna().iloc[-1], **format_meta)
         row_dict['six_month'] = utils.format_value(df_6_month[data_id].dropna().iloc[-1], **format_meta)

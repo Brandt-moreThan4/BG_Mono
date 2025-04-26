@@ -3,6 +3,7 @@ from pathlib import Path
 from matplotlib import cycler
 import matplotlib as mpl
 from matplotlib import pyplot as plt
+import datetime
 
 def format_value(val, decimals=2, show_percent=False, use_commas=True, show_dollar=False,percent_convert=False) -> str:
     
@@ -51,3 +52,11 @@ def set_mpl_colors() -> None:
     ]
 
     mpl.rcParams["axes.prop_cycle"] = cycler(color=COLORS)
+
+
+def make_date(input) -> datetime.date:
+    """
+    Convert whatever we have to a date object.
+    """
+    date_time = pd.to_datetime(input)
+    return date_time.date()
