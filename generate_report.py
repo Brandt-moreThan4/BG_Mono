@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import plotly.io as pio
+import logging
 
 
 import utils
@@ -15,6 +16,16 @@ OUTPUT_FOLDER = Path("output")
 OUTPUT_HTML = Path("output") / "fred_dashboard_1.html"
 # SNAPSHOT_FILE = Path("output") / "fred_dashboard_1.xlsx"
 IMAGES_FOLDER = OUTPUT_FOLDER / "images"
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('generate_report.log'),
+        logging.StreamHandler()
+    ]
+)
+
 
 # Jinja env
 jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
@@ -210,6 +221,7 @@ def generate_inflation_report() -> str:
 
 def generate_report() -> None:
 
+    logging.info("Beginning report generation...")
 
     full_report_template = jinja_env.get_template("0_full_report.html")
     dashboard_template = jinja_env.get_template("2_macro_dash.html")
