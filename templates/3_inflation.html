@@ -39,11 +39,12 @@
     </table>
 
     <br>
-    <!-- Add an image -->
-    <img src="images/inflation_chart.png" alt="Inflation Chart" style="width: 100%; max-width: 1000px; height: auto; display: block; margin: 20px auto;">
-    
-    <div>
-        {{ chart_html | safe }}
+
+    <div style="text-align: center; margin: 20px 0;">
+        <div style="max-width: 1200px; margin: 0 auto;">
+            {{ chart_html | safe }}
+        </div>
     </div>
+    
 
 </div>

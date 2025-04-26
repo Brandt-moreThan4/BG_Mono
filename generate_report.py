@@ -63,36 +63,6 @@ def get_macro_dashboard_data() -> list[dict]:
 
 
 
-
-def generate_inflation_chart(inflation_df: pd.DataFrame) -> None:
-    LOOKBACK_YEARS = 7
-    df = inflation_df.iloc[-LOOKBACK_YEARS * 12:]
-
-    # Map column names to display names
-    name_mapper = master_fred_map_df.set_index('fred_id')['display_name']
-    df.columns = df.columns.map(name_mapper)
-
-    # Plotting
-    fig, ax = plt.subplots(figsize=(12, 6), dpi=150)  # Larger size & higher resolution
-
-    df.plot(ax=ax, linewidth=2)
-
-    ax.set_title("12-Month Inflation", fontsize=16, fontweight='bold')
-    ax.legend(loc='upper left', fontsize=10)
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:.0%}"))
-    ax.set_xlabel("")
-    ax.set_ylabel("YoY % Change", fontsize=12)
-    ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.7)
-
-    fig.tight_layout()  # Removes extra whitespace
-    chart_path = IMAGES_FOLDER / "inflation_chart.png"
-    # fig.savefig(chart_path, bbox_inches="tight")
-    fig.savefig(chart_path, bbox_inches="tight", transparent=True)
-
-    plt.close(fig)
-
-
-
 def generate_inflation_chart_plotly(inflation_df: pd.DataFrame) -> str:
     LOOKBACK_YEARS = 7
     df = inflation_df.iloc[-LOOKBACK_YEARS * 12:].copy()
@@ -112,11 +82,12 @@ def generate_inflation_chart_plotly(inflation_df: pd.DataFrame) -> str:
             hovertemplate='%{y:.2%}<extra>' + col + '</extra>',
         ))
 
+
     fig.update_layout(
         title="12-Month Inflation (YoY % Change)",
         title_font_size=20,
-        height=500,
-        width=900,
+        height=500,  # You can keep height fixed if you want
+        autosize=True,  # Enable autosizing
         xaxis_title="Date",
         yaxis_title="Year-over-Year Change",
         yaxis_tickformat=".0%",
@@ -124,6 +95,7 @@ def generate_inflation_chart_plotly(inflation_df: pd.DataFrame) -> str:
         margin=dict(t=60, b=40, l=50, r=50),
         legend=dict(x=0, y=1, bgcolor="rgba(0,0,0,0)"),
     )
+    
 
     # Generate HTML div string
     chart_html = pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
