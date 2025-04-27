@@ -1,43 +1,72 @@
 import pandas as pd
 import yfinance as yf
-import os
 
 
-def get_yf_rets(tickers: list[str]) -> pd.DataFrame:
-    raw_data_df = yf.download(tickers, group_by='ticker', auto_adjust=False, actions=False)
+class YFinanceData:
+    def __init__(self, tickers: list[str]):
+        self.tickers = tickers
+        self._raw_data_df = None
+        self._price_data_df = None
+        self._adjusted_price_data_df = None
+        self._returns_df = None
+
+        self.run()
+
+    def fetch_data(self) -> None:
+        self._raw_data_df = yf.download(self.tickers, group_by='ticker', auto_adjust=False, actions=False)
+        self._raw_data_df.index = pd.to_datetime(self._raw_data_df.index)
+
+    def clean_data(self) -> None:
+        if self._raw_data_df is None:
+            raise ValueError("No raw data to clean. Please fetch data first.")
+
+        self._price_data_df = self._raw_data_df.loc[:, (slice(None), 'Close')]
+        self._price_data_df.columns = self._price_data_df.columns.droplevel(1)
+
+        self._adjusted_price_data_df = self._raw_data_df.loc[:, (slice(None), 'Adj Close')].copy()
+        self._adjusted_price_data_df.columns = self._adjusted_price_data_df.columns.droplevel(1)
+        self._adjusted_price_data_df.ffill(inplace=True)
+
+        self._returns_df = self._adjusted_price_data_df.pct_change(fill_method=None)
+        self._returns_df = self._returns_df[sorted(self._returns_df.columns)].copy()
+
+    def run(self) -> None:
+        self.fetch_data()
+        self.clean_data()
+
+    @property
+    def raw_data(self) -> pd.DataFrame:
+        if self._raw_data_df is None:
+            raise ValueError("Raw data not available.")
+        return self._raw_data_df.copy()
+
+    @property
+    def price_data(self) -> pd.DataFrame:
+        if self._price_data_df is None:
+            raise ValueError("Price data not available.")
+        return self._price_data_df.copy()
+
+    @property
+    def adjusted_price_data(self) -> pd.DataFrame:
+        if self._adjusted_price_data_df is None:
+            raise ValueError("Adjusted price data not available.")
+        return self._adjusted_price_data_df.copy()
+
+    @property
+    def returns(self) -> pd.DataFrame:
+        if self._returns_df is None:
+            raise ValueError("Returns not available.")
+        return self._returns_df.copy()
+
+    def __repr__(self) -> str:
+        return f"YFinanceData(tickers={self.tickers})"
     
-    rets_df = clean_data(raw_data_df)
-    return rets_df
+    def __str__(self) -> str:
+        return f"YFinanceData with {len(self.tickers)} tickers: {', '.join(self.tickers)}"
 
-def clean_data(raw_data_df) -> pd.DataFrame:
-    df = raw_data_df.copy()
-    df.index = pd.to_datetime(df.index)
-    
-    # Grab the actual price df
-    price_df = df.loc[:, (slice(None), 'Close')]
-    price_df.columns = price_df.columns.droplevel(1)
-
-    # Grab the adjusted price df
-    adjusted_prices_df = df.loc[:, (slice(None), 'Adj Close')].copy()
-    adjusted_prices_df.columns = adjusted_prices_df.columns.droplevel(1)
-    
-    # Forward fill any nulls with adjusted prices
-    adjusted_prices_df.ffill(inplace=True)
-
-    # Calculate returns    
-    rets_df = adjusted_prices_df.pct_change(fill_method=None)
-
-    # Sort the columns alphabetically
-    rets_df = rets_df[sorted(rets_df.columns)].copy()
-    
-    return rets_df
-
-def test_function():
-    # Test function to ensure the module works correctly
-    print('I Ran!!')
 
 if __name__ == '__main__':
-
-    TICKERS = ['AAPL', 'MSFT', 'GOOGL']  # Example tickers
-    rets_df = get_yf_rets(TICKERS)
+    TICKERS = ['AAPL', 'MSFT', 'GOOGL']
+    yf_data = YFinanceData(TICKERS)
+    returns_df = yf_data.returns
     print('Done!')
