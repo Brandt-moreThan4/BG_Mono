@@ -4,6 +4,7 @@ from matplotlib import cycler
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 import datetime
+import logging
 
 def format_value(val, decimals=2, show_percent=False, use_commas=True, show_dollar=False,percent_convert=False) -> str:
     
@@ -60,3 +61,19 @@ def make_date(input) -> datetime.date:
     """
     date_time = pd.to_datetime(input)
     return date_time.date()
+
+
+def config_logging(log_file: str) -> None:
+    """
+    Configure logging to both file and console.
+    """
+
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler()
+        ]
+    )

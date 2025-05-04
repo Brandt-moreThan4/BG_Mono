@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import plotly.io as pio
 import logging
 import datetime
+import shutil
 
 
 import utils
@@ -14,19 +15,14 @@ import fred_fun as ff
 # Paths
 TEMPLATE_DIR = Path("templates")
 OUTPUT_FOLDER = Path("output")
-OUTPUT_HTML = Path("output") / "fred_dashboard_1.html"
-# SNAPSHOT_FILE = Path("output") / "fred_dashboard_1.xlsx"
+OUTPUT_HTML = OUTPUT_FOLDER / "Dashboard.html"
 IMAGES_FOLDER = OUTPUT_FOLDER / "images"
+CSS_TEMPLATE = TEMPLATE_DIR / 'css' / 'style.css'
+CSS_OUTPUT_DIR = OUTPUT_FOLDER / 'css'
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('generate_report.log'),
-        logging.StreamHandler()
-    ]
-)
 
+utils.config_logging('logs/generate_report.log')
+utils.set_mpl_colors()
 
 # Jinja env
 jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
@@ -34,7 +30,7 @@ jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
 FORMAT_COLS = ['decimals', 'show_percent', 'use_commas', 'show_dollar']
 
 master_fred_map_df = pd.read_excel(ff.MASTER_FILE, sheet_name='master')
-utils.set_mpl_colors()
+
 
 def get_macro_dashboard_data() -> list[dict]:
 
@@ -102,42 +98,6 @@ def generate_inflation_chart_plotly(inflation_df: pd.DataFrame) -> str:
     return chart_html
 
 
-def generate_inflation_report() -> str:
-    FRED_IDS = ['CPIAUCSL', 'CPILFESL', 'PCEPI', 'PCEPILFE']
-    inflation_data = ff.get_fred_data(fred_ids=FRED_IDS)
-    df = inflation_data.pivot(index='date', columns='fred_id', values='value')
-
-    # % Changes
-    df_1m = df.pct_change(1)
-    df_3m = df.pct_change(3)
-    df_6m = df.pct_change(6)
-    df_12m = df.pct_change(12)
-
-    fred_map = master_fred_map_df.set_index('fred_id')
-    format_meta = {'show_percent': True, 'percent_convert': True}
-    rows = []
-
-    for fid in FRED_IDS:
-        rows.append({
-            'display_name': fred_map.loc[fid]['display_name'],
-            'url': fred_map.loc[fid]['link'],
-            'latest_date': df_12m[fid].last_valid_index().date(),
-            'one_month': utils.format_value(df_1m[fid].dropna().iloc[-1], **format_meta),
-            'three_month': utils.format_value(df_3m[fid].dropna().iloc[-1], **format_meta),
-            'six_month': utils.format_value(df_6m[fid].dropna().iloc[-1], **format_meta),
-            'twelve_month': utils.format_value(df_12m[fid].dropna().iloc[-1], **format_meta),
-            'annualized_one_month': utils.format_value(df_1m[fid].dropna().iloc[-1] * 12, **format_meta),
-            'annualized_three_month': utils.format_value(df_3m[fid].dropna().iloc[-1] * 4, **format_meta),
-            'annualized_six_month': utils.format_value(df_6m[fid].dropna().iloc[-1] * 2, **format_meta),
-        })
-
-    # NEW: Generate interactive chart
-    inflation_chart_html = generate_inflation_chart_plotly(df_12m)
-
-    # Render HTML
-    inflation_template = jinja_env.get_template("3_inflation.html")
-    html = inflation_template.render(rows=rows, chart_html=inflation_chart_html)
-    return html
 
 
 def generate_inflation_report() -> str:
@@ -219,7 +179,13 @@ def generate_report() -> None:
         f.write(full_html)
 
 
-    print(f"✅ Report generated at: {OUTPUT_HTML}")
+    # Copy CSS file to output directory
+    shutil.copy(CSS_TEMPLATE, CSS_OUTPUT_DIR / CSS_TEMPLATE.name)
+
+
+    logging.info("Report generation complete.")
+
+
 
 if __name__ == "__main__":
     generate_report()
