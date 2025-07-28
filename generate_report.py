@@ -189,3 +189,7 @@ def generate_report() -> None:
 
 if __name__ == "__main__":
     generate_report()
+
+    # Open the report
+    import os
+    os.startfile(OUTPUT_HTML)
