@@ -58,7 +58,6 @@ def get_macro_dashboard_data() -> list[dict]:
     return rows
 
 
-
 def generate_inflation_chart_plotly(inflation_df: pd.DataFrame) -> str:
     LOOKBACK_YEARS = 7
     df = inflation_df.iloc[-LOOKBACK_YEARS * 12:].copy()
@@ -75,15 +74,17 @@ def generate_inflation_chart_plotly(inflation_df: pd.DataFrame) -> str:
             y=df[col],
             mode='lines',
             name=col,
-            hovertemplate='%{y:.2%}<extra>' + col + '</extra>',
+            # Modified hovertemplate to include date
+            hovertemplate='<b>Date: %{x|%b %d, %Y}</b><br>' +  # Added date with specific format
+                          '<b>Value: %{y:.2%}</b><br>' +
+                          '<extra>' + col + '</extra>',
         ))
-
 
     fig.update_layout(
         title="12-Month Inflation (YoY % Change)",
         title_font_size=20,
-        height=500,  # You can keep height fixed if you want
-        autosize=True,  # Enable autosizing
+        height=500,
+        autosize=True,
         xaxis_title="Date",
         yaxis_title="Year-over-Year Change",
         yaxis_tickformat=".0%",
@@ -91,13 +92,7 @@ def generate_inflation_chart_plotly(inflation_df: pd.DataFrame) -> str:
         margin=dict(t=60, b=40, l=50, r=50),
         legend=dict(x=0, y=1, bgcolor="rgba(0,0,0,0)"),
     )
-    
-
-    # Generate HTML div string
-    chart_html = pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
-    return chart_html
-
-
+    return fig.to_html(full_html=False, include_plotlyjs='cdn')
 
 
 def generate_inflation_report() -> str:
@@ -157,7 +152,6 @@ def generate_report() -> None:
 
     full_report_template = jinja_env.get_template("0_full_report.html")
     dashboard_template = jinja_env.get_template("2_macro_dash.html")
-
     gdp_template = jinja_env.get_template("4_gdp.html")
 
 
