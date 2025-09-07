@@ -30,7 +30,7 @@ jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
 FORMAT_COLS = ['decimals', 'show_percent', 'use_commas', 'show_dollar']
 
 master_fred_map_df = pd.read_excel(ff.MASTER_FILE, sheet_name='master')
-
+    
 
 def get_macro_dashboard_data() -> list[dict]:
 
