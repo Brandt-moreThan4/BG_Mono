@@ -1,3 +1,4 @@
+
 import pandas as pd
 from pathlib import Path
 from matplotlib import cycler
@@ -5,9 +6,10 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 import datetime
 import logging
+import os
 
-def format_value(val, decimals=2, show_percent=False, use_commas=True, show_dollar=False,percent_convert=False) -> str:
-    
+
+def format_value(val, decimals=2, show_percent=False, use_commas=True, show_dollar=False, percent_convert=False) -> str:
     if pd.isnull(val):
         return "-"
 
@@ -32,6 +34,21 @@ def format_value(val, decimals=2, show_percent=False, use_commas=True, show_doll
 
 
 
+
+def ensure_project_folders():
+    """
+    Create all expected folders for the project if they do not exist.
+    """
+    folders = [
+        'logs',
+        'output',
+        os.path.join('output', 'images'),
+        os.path.join('output', 'css'),
+        'temp_data',
+    ]
+    for folder in folders:
+        Path(folder).mkdir(parents=True, exist_ok=True)
+    # Existing folders (reference, templates, etc.) are already present
 
 def set_mpl_colors() -> None:
     COLORS = [
